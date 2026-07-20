@@ -89,6 +89,6 @@ python main.py
 
 <div align="center">
 
-Built with ☕ and a bit of automation by **Ujjawal**
+Built with ☕ and a bit of automation by **Ujjawal Kumar**
 
 </div>
