@@ -8,7 +8,6 @@
 [![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-Automated-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/features/actions)
 [![Telegram](https://img.shields.io/badge/Telegram-Notifications-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)](https://telegram.org/)
 [![Anthropic Claude](https://img.shields.io/badge/Claude_API-Pitch_Drafting-D97757?style=for-the-badge&logo=anthropic&logoColor=white)](https://www.anthropic.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](#license)
 
 </div>
 
@@ -85,12 +84,6 @@ python main.py
 - **Schedule** — edit the `cron` line in `.github/workflows/digest.yml` (UTC time).
 - **Strictness** — adjust `min_score` / `top_n` in the `filter_and_rank(...)` call in `main.py`.
 - **Sources** — add/remove subreddits in `REDDIT_SUBS` inside `scraper.py`.
-
----
-
-## 📄 License
-
-MIT — free to use, modify, and share.
 
 ---
 
