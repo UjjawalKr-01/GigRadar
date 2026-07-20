@@ -1,0 +1,40 @@
+name: GigRadar Digest
+
+on:
+  schedule:
+    # Runs at 08:00 and 18:00 UTC daily — adjust to your timezone/preference
+    - cron: '0 8,18 * * *'
+  workflow_dispatch: {}  # lets you trigger it manually from the Actions tab
+
+permissions:
+  contents: write  # needed so the workflow can commit the updated seen_posts.json
+
+jobs:
+  run-digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run digest
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python main.py
+
+      - name: Commit updated seen_posts.json
+        run: |
+          git config user.name "GigRadar"
+          git config user.email "action@github.com"
+          git add seen_posts.json
+          git diff --staged --quiet || git commit -m "Update seen posts state"
+          git push
