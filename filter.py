@@ -8,12 +8,17 @@ import re
 
 # Words that suggest a real, scoped, paid task
 POSITIVE_SIGNALS = [
-    r"\$\d+", r"budget", r"paid", r"pay", r"hourly", r"fixed price",
+    r"budget", r"paid", r"pay", r"hourly", r"fixed price",
     r"bug", r"fix", r"script", r"automation", r"integrate", r"integration",
     r"plugin", r"macro", r"spreadsheet", r"excel", r"google sheet",
     r"chrome extension", r"api", r"scrape", r"scraper", r"wordpress",
     r"small (task|job|project)", r"quick (task|job|fix)",
 ]
+
+# Currency signals: symbols (any amount) and 3-letter currency codes (any amount).
+# Covers USD/$, EUR/€, GBP/£, INR/₹, JPY/¥, and generic codes like CAD, AUD, etc.
+CURRENCY_SYMBOL_PATTERN = r"[\$€£₹¥]\s?\d+"
+CURRENCY_CODE_PATTERN = r"\b\d+\s?(usd|eur|gbp|inr|cad|aud|jpy|chf|sgd|nzd)\b|\b(usd|eur|gbp|inr|cad|aud|jpy|chf|sgd|nzd)\s?\d+\b"
 
 # Words that suggest scope creep / too big for a quick paid gig, or noise
 NEGATIVE_SIGNALS = [
@@ -46,9 +51,10 @@ def score_post(post):
     else:
         score -= 2
 
-    # Explicit $ mention is the single strongest signal
-    if re.search(r"\$\d{2,4}", text):
+    # Explicit currency mention (any currency, not just USD) is the strongest signal
+    if re.search(CURRENCY_SYMBOL_PATTERN, text) or re.search(CURRENCY_CODE_PATTERN, text, re.IGNORECASE):
         score += 3
+        matched_positive.append("currency_amount")
 
     post["_score"] = score
     post["_matched"] = matched_positive
