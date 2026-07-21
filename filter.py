@@ -32,17 +32,31 @@ NEGATIVE_SIGNALS = [
     r"relocat(e|ion)", r"visa sponsorship",
 ]
 
-# RemoteOK and WeWorkRemotely are structurally full-time job boards, not gig
-# marketplaces — most of what they list is permanent roles, not one-off tasks.
-# Jobicy and GitHub bounty issues, by contrast, are already pre-filtered to be
-# freelance/bounty work by their source (server-side filter or label), so being
-# "just tagged bounty" is itself a strong signal even if no $ amount is in the text.
+# These bounty posts are explicitly targeting autonomous AI coding agents, not
+# human freelancers — often tied to obscure/unverified crypto-adjacent payment
+# platforms. Given real scam/wasted-effort risk, exclude these hard rather than
+# just discouraging them.
+AGENT_BAIT_SIGNALS = [
+    r"ready for agent", r"\bagentic\b", r"for agents\b", r"\bai agent\b",
+]
+AGENT_BAIT_PENALTY = -20
+
+# RemoteOK, WeWorkRemotely, and Jobicy are all general remote job boards —
+# mostly full-time roles, not gig marketplaces. GitHub bounty issues, by
+# contrast, are pre-filtered to be paid bounty work by their label, so being
+# "just tagged bounty" is itself a strong signal even with no $ in the text.
 SOURCE_SCORE_ADJUSTMENT = {
     "remoteok": -6,
     "weworkremotely": -6,
-    "jobicy": 2,
+    "jobicy": -6,
     "github_bounty": 3,
 }
+
+# Jobicy provides a real job_type field per listing (e.g. "full-time", "freelance",
+# "contract") — much more reliable than guessing from keywords, so use it directly
+# when present instead of relying only on regex signals.
+FREELANCE_JOB_TYPES = {"freelance", "contract", "temporary"}
+FULLTIME_JOB_TYPES = {"full-time", "part-time"}
 
 MAX_COMMENTS_FOR_LOW_COMPETITION = 15
 
@@ -61,9 +75,23 @@ def score_post(post):
         if re.search(pattern, text):
             score -= 5
 
+    for pattern in AGENT_BAIT_SIGNALS:
+        if re.search(pattern, text):
+            score += AGENT_BAIT_PENALTY
+            break  # only apply once even if multiple agent-bait phrases match
+
     # Structural adjustment based on source type (penalize full-time job boards,
     # boost sources that are already pre-filtered to be gig/bounty work)
     score += SOURCE_SCORE_ADJUSTMENT.get(post.get("source", ""), 0)
+
+    # If the source gives us an explicit job_type field (e.g. Jobicy), trust it
+    # over keyword guessing — it's a direct signal, not an inference.
+    job_type = (post.get("job_type") or "").lower()
+    if job_type in FREELANCE_JOB_TYPES:
+        score += 6
+        matched_positive.append(f"job_type:{job_type}")
+    elif job_type in FULLTIME_JOB_TYPES:
+        score -= 6
 
     # Low comment count = you're an early responder = better odds
     if post.get("num_comments", 0) <= MAX_COMMENTS_FOR_LOW_COMPETITION:

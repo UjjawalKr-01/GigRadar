@@ -106,23 +106,22 @@ def get_wwr_posts():
 
 def get_jobicy_posts():
     """
-    Jobicy has a free public JSON API that, unlike RemoteOK/WWR, actually lets you
-    filter by job_types=freelance — so this is a much better fit for gig-hunting
-    than the general full-time job boards.
+    Jobicy has a free public JSON API. Correction: earlier versions of this
+    function assumed a `job_types=freelance` filter param existed — it doesn't.
+    Jobicy's real params are just count/geo/industry/tag, and it's a general
+    remote job board (mostly full-time), not a freelance-specific one. We now
+    pull broadly and let filter.py's keyword/currency scoring do the work,
+    same as RemoteOK/WWR.
     """
     posts = []
     try:
         url = "https://jobicy.com/api/v2/remote-jobs"
-        params = {"count": 50, "job_types": "freelance"}
+        params = {"count": 50}
         resp = requests.get(url, params=params, headers=HEADERS, timeout=10)
         resp.raise_for_status()
         resp.encoding = "utf-8"
         data = resp.json()
         for d in data.get("jobs", []):
-            # Double-check job type client-side too, in case the server-side filter
-            # is loose or ignored for some listings.
-            if d.get("jobType", "").lower() != "freelance":
-                continue
             posts.append({
                 "source": "jobicy",
                 "id": str(d.get("id")),
@@ -131,6 +130,7 @@ def get_jobicy_posts():
                 "body": (d.get("jobExcerpt") or d.get("jobDescription") or "")[:1000],
                 "num_comments": 0,
                 "created_utc": 0,
+                "job_type": d.get("jobType", ""),  # kept for filter.py to inspect
             })
     except Exception as e:
         print(f"[jobicy] failed: {e}")
