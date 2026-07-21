@@ -18,8 +18,8 @@
 
 GigRadar runs on a free schedule (via GitHub Actions) and:
 
-1. **Scrapes** new posts from Hacker News's monthly freelance thread, RemoteOK, WeWorkRemotely, Jobicy (freelance-filtered listings), and GitHub issues tagged `bounty`.
-2. **Filters & scores** each post — surfacing well-scoped, paid, low-competition gigs and burying vague "build me an app," full-time/internship, or equity-only posts.
+1. **Scrapes** new posts from Hacker News's monthly freelance thread, RemoteOK, WeWorkRemotely, Jobicy, and GitHub issues tagged `bounty`.
+2. **Filters & scores** each post — surfacing well-scoped, paid, low-competition gigs and burying vague "build me an app," full-time/internship, equity-only, or AI-agent-bait/spam bounty posts.
 3. **Drafts a pitch** for each good match using the Anthropic API (falls back to a simple template if no API key is set).
 4. **Sends you a digest** on Telegram, twice a day, so you can review and send the pitches you like.
 
