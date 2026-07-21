@@ -34,11 +34,14 @@ NEGATIVE_SIGNALS = [
 
 # RemoteOK and WeWorkRemotely are structurally full-time job boards, not gig
 # marketplaces — most of what they list is permanent roles, not one-off tasks.
-# Penalize posts from these sources so only genuinely gig-shaped posts (strong
-# currency + task signals) can still clear the bar.
-JOB_BOARD_SOURCE_PENALTY = {
+# Jobicy and GitHub bounty issues, by contrast, are already pre-filtered to be
+# freelance/bounty work by their source (server-side filter or label), so being
+# "just tagged bounty" is itself a strong signal even if no $ amount is in the text.
+SOURCE_SCORE_ADJUSTMENT = {
     "remoteok": -6,
     "weworkremotely": -6,
+    "jobicy": 2,
+    "github_bounty": 3,
 }
 
 MAX_COMMENTS_FOR_LOW_COMPETITION = 15
@@ -58,8 +61,9 @@ def score_post(post):
         if re.search(pattern, text):
             score -= 5
 
-    # Structural penalty for sources that are full-time job boards by nature
-    score += JOB_BOARD_SOURCE_PENALTY.get(post.get("source", ""), 0)
+    # Structural adjustment based on source type (penalize full-time job boards,
+    # boost sources that are already pre-filtered to be gig/bounty work)
+    score += SOURCE_SCORE_ADJUSTMENT.get(post.get("source", ""), 0)
 
     # Low comment count = you're an early responder = better odds
     if post.get("num_comments", 0) <= MAX_COMMENTS_FOR_LOW_COMPETITION:

@@ -1,48 +1,23 @@
 """
 scraper.py
-Pulls fresh job/gig posts from Reddit, Hacker News, RemoteOK, and WeWorkRemotely.
+Pulls fresh job/gig posts from Hacker News, RemoteOK, WeWorkRemotely, and Jobicy.
 All sources used here are public/official (no scraping of ToS-restricted sites).
+
+Note: Reddit was removed as a source. Reddit's legacy script-app API access now
+effectively requires a moderation-tool use case to get approved, and their public
+JSON endpoint actively blocks cloud/datacenter IPs (which is what GitHub Actions
+runners look like to them) — so it wasn't a reliable source going forward.
 """
 
 import requests
 import feedparser
-import time
 
 HEADERS = {"User-Agent": "gig-finder-bot/1.0 (personal use, contact: you@example.com)"}
 
-REDDIT_SUBS = ["forhire", "slavelabour", "webdev", "smallbusiness", "Wordpress"]
 WWR_FEEDS = [
     "https://weworkremotely.com/categories/remote-programming-jobs.rss",
     "https://weworkremotely.com/categories/remote-full-stack-programming-jobs.rss",
 ]
-
-
-def get_reddit_posts(limit=25):
-    """Pull newest posts from each target subreddit via Reddit's public JSON endpoint."""
-    posts = []
-    for sub in REDDIT_SUBS:
-        url = f"https://www.reddit.com/r/{sub}/new.json?limit={limit}"
-        try:
-            resp = requests.get(url, headers=HEADERS, timeout=10)
-            resp.raise_for_status()
-            data = resp.json()
-            for item in data.get("data", {}).get("children", []):
-                d = item["data"]
-                # Only care about [HIRING]/[TASK]/paid-sounding posts, not [FOR HIRE] (people offering, not asking)
-                title = d.get("title", "")
-                posts.append({
-                    "source": f"reddit/r/{sub}",
-                    "id": d.get("id"),
-                    "title": title,
-                    "url": "https://www.reddit.com" + d.get("permalink", ""),
-                    "body": d.get("selftext", "")[:1000],
-                    "num_comments": d.get("num_comments", 0),
-                    "created_utc": d.get("created_utc", 0),
-                })
-        except Exception as e:
-            print(f"[reddit] failed for r/{sub}: {e}")
-        time.sleep(1)  # be polite to Reddit's rate limits
-    return posts
 
 
 def get_hn_freelance_posts():
@@ -129,12 +104,76 @@ def get_wwr_posts():
     return posts
 
 
+def get_jobicy_posts():
+    """
+    Jobicy has a free public JSON API that, unlike RemoteOK/WWR, actually lets you
+    filter by job_types=freelance — so this is a much better fit for gig-hunting
+    than the general full-time job boards.
+    """
+    posts = []
+    try:
+        url = "https://jobicy.com/api/v2/remote-jobs"
+        params = {"count": 50, "job_types": "freelance"}
+        resp = requests.get(url, params=params, headers=HEADERS, timeout=10)
+        resp.raise_for_status()
+        resp.encoding = "utf-8"
+        data = resp.json()
+        for d in data.get("jobs", []):
+            # Double-check job type client-side too, in case the server-side filter
+            # is loose or ignored for some listings.
+            if d.get("jobType", "").lower() != "freelance":
+                continue
+            posts.append({
+                "source": "jobicy",
+                "id": str(d.get("id")),
+                "title": d.get("jobTitle", ""),
+                "url": d.get("url", ""),
+                "body": (d.get("jobExcerpt") or d.get("jobDescription") or "")[:1000],
+                "num_comments": 0,
+                "created_utc": 0,
+            })
+    except Exception as e:
+        print(f"[jobicy] failed: {e}")
+    return posts
+
+
+def get_github_bounty_posts():
+    """
+    GitHub's search API can find issues tagged with a 'bounty' label across all
+    public repos — real, cash-tagged coding tasks. Free, reliable, and (unlike
+    Reddit) doesn't block requests from cloud/CI IPs.
+    """
+    posts = []
+    try:
+        url = "https://api.github.com/search/issues"
+        params = {"q": "label:bounty state:open", "sort": "created", "order": "desc", "per_page": 30}
+        resp = requests.get(url, params=params, headers={**HEADERS, "Accept": "application/vnd.github+json"}, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        for item in data.get("items", []):
+            if "pull_request" in item:
+                continue  # GitHub's issue search mixes in PRs; we only want issues
+            posts.append({
+                "source": "github_bounty",
+                "id": str(item.get("id")),
+                "title": item.get("title", ""),
+                "url": item.get("html_url", ""),
+                "body": (item.get("body") or "")[:1000],
+                "num_comments": item.get("comments", 0),
+                "created_utc": 0,
+            })
+    except Exception as e:
+        print(f"[github_bounty] failed: {e}")
+    return posts
+
+
 def get_all_posts():
     all_posts = []
-    all_posts.extend(get_reddit_posts())
     all_posts.extend(get_hn_freelance_posts())
     all_posts.extend(get_remoteok_posts())
     all_posts.extend(get_wwr_posts())
+    all_posts.extend(get_jobicy_posts())
+    all_posts.extend(get_github_bounty_posts())
     return all_posts
 
 
