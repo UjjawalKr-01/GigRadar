@@ -87,6 +87,8 @@ def get_remoteok_posts():
     try:
         resp = requests.get("https://remoteok.com/api", headers=HEADERS, timeout=10)
         resp.raise_for_status()
+        resp.encoding = "utf-8"  # RemoteOK doesn't always set charset correctly in headers,
+        # which caused accented characters (e.g. "Cobrança") to get mangled otherwise.
         data = resp.json()
         for d in data:
             if not isinstance(d, dict) or "id" not in d:

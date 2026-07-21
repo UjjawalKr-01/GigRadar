@@ -25,8 +25,21 @@ NEGATIVE_SIGNALS = [
     r"equity only", r"unpaid", r"no budget", r"exposure",
     r"build (me |us )?(a |an )?(full|complete|entire) (app|platform|saas|website)",
     r"co-?founder", r"partner (up|wanted)", r"looking for a team",
-    r"long[- ]term commitment", r"full[- ]time",
+    r"long[- ]term commitment", r"full[- ]time", r"full time",
+    r"intern(ship)?\b", r"permanent (position|role)", r"years? of experience",
+    r"salary", r"benefits package", r"401k", r"health insurance",
+    r"apply (now|here|today)", r"job description", r"we are hiring for",
+    r"relocat(e|ion)", r"visa sponsorship",
 ]
+
+# RemoteOK and WeWorkRemotely are structurally full-time job boards, not gig
+# marketplaces — most of what they list is permanent roles, not one-off tasks.
+# Penalize posts from these sources so only genuinely gig-shaped posts (strong
+# currency + task signals) can still clear the bar.
+JOB_BOARD_SOURCE_PENALTY = {
+    "remoteok": -6,
+    "weworkremotely": -6,
+}
 
 MAX_COMMENTS_FOR_LOW_COMPETITION = 15
 
@@ -44,6 +57,9 @@ def score_post(post):
     for pattern in NEGATIVE_SIGNALS:
         if re.search(pattern, text):
             score -= 5
+
+    # Structural penalty for sources that are full-time job boards by nature
+    score += JOB_BOARD_SOURCE_PENALTY.get(post.get("source", ""), 0)
 
     # Low comment count = you're an early responder = better odds
     if post.get("num_comments", 0) <= MAX_COMMENTS_FOR_LOW_COMPETITION:
