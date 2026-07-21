@@ -8,6 +8,7 @@
 [![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-Automated-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/features/actions)
 [![Telegram](https://img.shields.io/badge/Telegram-Notifications-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)](https://telegram.org/)
 [![Anthropic Claude](https://img.shields.io/badge/Claude_API-Pitch_Drafting-D97757?style=for-the-badge&logo=anthropic&logoColor=white)](https://www.anthropic.com/)
+[![GitHub API](https://img.shields.io/badge/GitHub_API-Bounty_Search-181717?style=for-the-badge&logo=github&logoColor=white)](https://docs.github.com/en/rest/search)
 
 </div>
 
@@ -17,12 +18,14 @@
 
 GigRadar runs on a free schedule (via GitHub Actions) and:
 
-1. **Scrapes** new posts from Reddit (r/forhire, r/slavelabour, r/webdev, r/smallbusiness, r/Wordpress), Hacker News's monthly freelance thread, RemoteOK, and WeWorkRemotely.
-2. **Filters & scores** each post — surfacing well-scoped, paid, low-competition gigs and burying vague "build me an app" or equity-only posts.
+1. **Scrapes** new posts from Hacker News's monthly freelance thread, RemoteOK, WeWorkRemotely, Jobicy (freelance-filtered listings), and GitHub issues tagged `bounty`.
+2. **Filters & scores** each post — surfacing well-scoped, paid, low-competition gigs and burying vague "build me an app," full-time/internship, or equity-only posts.
 3. **Drafts a pitch** for each good match using the Anthropic API (falls back to a simple template if no API key is set).
 4. **Sends you a digest** on Telegram, twice a day, so you can review and send the pitches you like.
 
 You stay in control — nothing is sent to a client automatically. GigRadar only surfaces leads and drafts; you decide what goes out.
+
+> **Note:** Reddit was originally a source but was removed. Its public JSON endpoint blocks requests from cloud/CI IPs (which is what GitHub Actions runners look like to it), and getting proper API access now effectively requires a moderation-tool use case — so it wasn't reliable to keep.
 
 ---
 
@@ -31,7 +34,7 @@ You stay in control — nothing is sent to a client automatically. GigRadar only
 ```
 GigRadar/
 ├── .github/workflows/digest.yml   # Scheduled automation (runs twice daily, free)
-├── scraper.py                     # Pulls posts from Reddit, HN, RemoteOK, WWR
+├── scraper.py                     # Pulls posts from HN, RemoteOK, WWR, Jobicy, GitHub bounties
 ├── filter.py                      # Scores & ranks posts
 ├── pitch.py                       # Drafts opening pitches via Claude
 ├── notifier.py                    # Sends the digest to Telegram
@@ -83,7 +86,7 @@ python main.py
 
 - **Schedule** — edit the `cron` line in `.github/workflows/digest.yml` (UTC time).
 - **Strictness** — adjust `min_score` / `top_n` in the `filter_and_rank(...)` call in `main.py`.
-- **Sources** — add/remove subreddits in `REDDIT_SUBS` inside `scraper.py`.
+- **Sources** — each source is its own function in `scraper.py`. Adjust the `count`/`per_page` params on `get_jobicy_posts()` or `get_github_bounty_posts()`, or add a new source function and register it in `get_all_posts()`.
 
 ---
 
