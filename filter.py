@@ -86,11 +86,18 @@ def score_post(post):
 
     # If the source gives us an explicit job_type field (e.g. Jobicy), trust it
     # over keyword guessing — it's a direct signal, not an inference.
-    job_type = (post.get("job_type") or "").lower()
-    if job_type in FREELANCE_JOB_TYPES:
+    # Jobicy sometimes returns this as a list (e.g. ["full-time","contract"])
+    # rather than a single string, so normalize defensively either way.
+    raw_job_type = post.get("job_type") or ""
+    if isinstance(raw_job_type, list):
+        job_type_values = [str(t).lower() for t in raw_job_type]
+    else:
+        job_type_values = [str(raw_job_type).lower()]
+
+    if any(jt in FREELANCE_JOB_TYPES for jt in job_type_values):
         score += 6
-        matched_positive.append(f"job_type:{job_type}")
-    elif job_type in FULLTIME_JOB_TYPES:
+        matched_positive.append(f"job_type:{job_type_values}")
+    elif any(jt in FULLTIME_JOB_TYPES for jt in job_type_values):
         score -= 6
 
     # Low comment count = you're an early responder = better odds
