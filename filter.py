@@ -34,12 +34,20 @@ NEGATIVE_SIGNALS = [
 
 # These bounty posts are explicitly targeting autonomous AI coding agents, not
 # human freelancers — often tied to obscure/unverified crypto-adjacent payment
-# platforms. Given real scam/wasted-effort risk, exclude these hard rather than
-# just discouraging them.
+# platforms, and the content itself is frequently absurd/joke tasks used to
+# test agents ("fix my failing marriage" as a paid bounty). Given real
+# scam/wasted-effort risk, exclude these hard rather than just discouraging them.
 AGENT_BAIT_SIGNALS = [
-    r"ready for agent", r"\bagentic\b", r"for agents\b", r"\bai agent\b",
+    r"ready\s*for\s*agent", r"agent\s*ready", r"\bagentic\b",
+    r"for agents\b", r"\bai agent\b", r"\[agent\]", r"agent[- ]only",
 ]
 AGENT_BAIT_PENALTY = -20
+
+# Specific repos we've directly observed posting spam/joke "bounties" aimed at
+# AI agents rather than real paid work. Exclude entirely regardless of content.
+BLOCKED_REPO_PATTERNS = [
+    r"zhangjiayang6835-cyber/bounty-plaza",
+]
 
 # RemoteOK, WeWorkRemotely, and Jobicy are all general remote job boards —
 # mostly full-time roles, not gig marketplaces. GitHub bounty issues, by
@@ -79,6 +87,13 @@ def score_post(post):
         if re.search(pattern, text):
             score += AGENT_BAIT_PENALTY
             break  # only apply once even if multiple agent-bait phrases match
+
+    # Hard exclude specific repos we've directly observed posting spam/joke bounties
+    url = post.get("url", "")
+    for pattern in BLOCKED_REPO_PATTERNS:
+        if re.search(pattern, url, re.IGNORECASE):
+            score -= 50
+            break
 
     # Structural adjustment based on source type (penalize full-time job boards,
     # boost sources that are already pre-filtered to be gig/bounty work)
