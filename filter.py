@@ -66,9 +66,9 @@ SCAM_BOUNTY_PENALTY = -25
 # contrast, are pre-filtered to be paid bounty work by their label, so being
 # "just tagged bounty" is itself a strong signal even with no $ in the text.
 SOURCE_SCORE_ADJUSTMENT = {
-    "remoteok": -6,
-    "weworkremotely": -6,
-    "jobicy": -6,
+    "remoteok": -3,
+    "weworkremotely": -3,
+    "jobicy": -3,
     "github_bounty": 3,
 }
 
