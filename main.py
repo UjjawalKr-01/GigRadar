@@ -10,6 +10,7 @@ from filter import filter_and_rank
 from pitch import draft_pitch
 from notifier import send_telegram
 from state import load_seen, save_seen
+from trust_check import check_github_trust
 
 
 def build_digest_text(posts, stats):
@@ -27,6 +28,8 @@ def build_digest_text(posts, stats):
     for i, p in enumerate(posts, 1):
         lines.append(f"{i}. [{p['source']}] {p['title']}")
         lines.append(f"   Link: {p['url']}")
+        if p.get("trust_warning"):
+            lines.append(f"   {p['trust_warning']}")
         lines.append(f"   Suggested pitch:\n   {p['pitch']}\n")
     return "\n".join(lines)
 
@@ -53,6 +56,12 @@ def run():
 
     for p in ranked:
         p["pitch"] = draft_pitch(p)
+        # Only check GitHub bounties — this is where we've directly observed
+        # same-day fake-account/repo scam patterns. Kept to finalists only
+        # (not the full scrape) to stay well within GitHub's free API limits.
+        if p.get("source") == "github_bounty":
+            trust = check_github_trust(p.get("author", ""), p.get("repo_full_name", ""))
+            p["trust_warning"] = trust.get("warning")
 
     stats = {
         "total_scraped": len(all_posts),

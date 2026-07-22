@@ -21,11 +21,14 @@ GigRadar runs on a free schedule (via GitHub Actions) and:
 1. **Scrapes** new posts from Hacker News's monthly freelance thread, RemoteOK, WeWorkRemotely, Jobicy, and GitHub issues tagged `bounty`.
 2. **Filters & scores** each post — surfacing well-scoped, paid, low-competition gigs and burying vague "build me an app," full-time/internship, equity-only, or AI-agent-bait/spam bounty posts.
 3. **Drafts a pitch** for each good match using the Anthropic API (falls back to a simple template if no API key is set).
-4. **Sends you a digest** on Telegram, twice a day, so you can review and send the pitches you like.
+4. **Checks trust signals** for GitHub bounty matches — flags posts where both the issue author's account and the repo itself are very new (≤7 days old), a pattern we've directly observed with fake/scam bounties.
+5. **Sends you a digest** on Telegram, twice a day, so you can review and send the pitches you like.
 
 You stay in control — nothing is sent to a client automatically. GigRadar only surfaces leads and drafts; you decide what goes out.
 
 > **Note:** Reddit was originally a source but was removed. Its public JSON endpoint blocks requests from cloud/CI IPs (which is what GitHub Actions runners look like to it), and getting proper API access now effectively requires a moderation-tool use case — so it wasn't reliable to keep.
+
+> **Note on the trust check:** flagging a new account/repo is a heuristic, not proof of a scam — and *not* flagging one isn't proof of legitimacy either. It only checks account/repo age via GitHub's public API; it can't verify payment intent, escrow, or reputation. Always use your own judgment before starting paid work, especially on bounty platforms like Opire that don't hold funds in escrow.
 
 ---
 
@@ -36,6 +39,7 @@ GigRadar/
 ├── .github/workflows/digest.yml   # Scheduled automation (runs twice daily, free)
 ├── scraper.py                     # Pulls posts from HN, RemoteOK, WWR, Jobicy, GitHub bounties
 ├── filter.py                      # Scores & ranks posts
+├── trust_check.py                 # Flags GitHub bounties from very new accounts/repos
 ├── pitch.py                       # Drafts opening pitches via Claude
 ├── notifier.py                    # Sends the digest to Telegram
 ├── state.py                       # Tracks already-seen posts

@@ -153,6 +153,8 @@ def get_github_bounty_posts():
         for item in data.get("items", []):
             if "pull_request" in item:
                 continue  # GitHub's issue search mixes in PRs; we only want issues
+            repo_url = item.get("repository_url", "")
+            repo_full_name = repo_url.replace("https://api.github.com/repos/", "")
             posts.append({
                 "source": "github_bounty",
                 "id": str(item.get("id")),
@@ -161,6 +163,8 @@ def get_github_bounty_posts():
                 "body": (item.get("body") or "")[:1000],
                 "num_comments": item.get("comments", 0),
                 "created_utc": 0,
+                "author": item.get("user", {}).get("login", ""),
+                "repo_full_name": repo_full_name,
             })
     except Exception as e:
         print(f"[github_bounty] failed: {e}")
