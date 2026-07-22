@@ -47,7 +47,19 @@ AGENT_BAIT_PENALTY = -20
 # AI agents rather than real paid work. Exclude entirely regardless of content.
 BLOCKED_REPO_PATTERNS = [
     r"zhangjiayang6835-cyber/bounty-plaza",
+    r"iamgoofball/-tg-station",
 ]
+
+# Additional scam-bounty pattern: tasks that aren't real work at all (e.g. "post
+# a duplicate of this issue to test our tracker") and/or demand payment only via
+# an unverifiable crypto address — a strong signal this isn't legitimate paid
+# freelance work, regardless of source or dollar amount mentioned.
+SCAM_BOUNTY_SIGNALS = [
+    r"duplicate (of this )?issue", r"duplicate issue tracker",
+    r"btc address", r"bitcoin address", r"crypto(currency)? address",
+    r"self-hosted issue sorting", r"slopbot",
+]
+SCAM_BOUNTY_PENALTY = -25
 
 # RemoteOK, WeWorkRemotely, and Jobicy are all general remote job boards —
 # mostly full-time roles, not gig marketplaces. GitHub bounty issues, by
@@ -87,6 +99,11 @@ def score_post(post):
         if re.search(pattern, text):
             score += AGENT_BAIT_PENALTY
             break  # only apply once even if multiple agent-bait phrases match
+
+    for pattern in SCAM_BOUNTY_SIGNALS:
+        if re.search(pattern, text):
+            score += SCAM_BOUNTY_PENALTY
+            break
 
     # Hard exclude specific repos we've directly observed posting spam/joke bounties
     url = post.get("url", "")
